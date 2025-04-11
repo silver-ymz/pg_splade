@@ -1,0 +1,11 @@
+[default]
+extend-ignore-re = [
+    # Latex formula
+    "\\$.+?\\$",
+]
+
+[default.extend-words]
+mmaped = "mmaped"
+
+[files]
+extend-exclude = ["assets/**/*"]

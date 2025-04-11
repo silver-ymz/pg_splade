@@ -1,0 +1,47 @@
+[package]
+name = "pg_splade"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[[bin]]
+name = "pgrx_embed_pg_splade"
+path = "./src/bin/pgrx_embed.rs"
+
+[features]
+pg12 = ["pgrx/pg12", "pgrx-tests/pg12"]
+pg13 = ["pgrx/pg13", "pgrx-tests/pg13"]
+pg14 = ["pgrx/pg14", "pgrx-tests/pg14"]
+pg15 = ["pgrx/pg15", "pgrx-tests/pg15"]
+pg16 = ["pgrx/pg16", "pgrx-tests/pg16"]
+pg17 = ["pgrx/pg17", "pgrx-tests/pg17"]
+pg_test = []
+
+cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
+metal = ["candle-core/metal", "candle-nn/metal", "candle-transformers/metal"]
+mkl = ["candle-core/mkl", "candle-nn/mkl", "candle-transformers/mkl"]
+
+[dependencies]
+anyhow = "1.0.97"
+candle-core = { git = "https://github.com/silver-ymz/candle", branch = "patch-to-pg_splade" }
+candle-nn = { git = "https://github.com/silver-ymz/candle", branch = "patch-to-pg_splade" }
+candle-transformers = { git = "https://github.com/silver-ymz/candle", branch = "patch-to-pg_splade" }
+pgrx = "=0.13.1"
+serde = "1.0.219"
+serde_json = "1.0.140"
+tokenizers = "0.21.1"
+
+[dev-dependencies]
+pgrx-tests = "=0.13.1"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
+[profile.dev-opt]
+inherits = "dev"
+opt-level = 3
+lto = "thin"
+codegen-units = 8
