@@ -52,3 +52,21 @@ CREATE EXTENSION IF NOT EXISTS pg_splade;
 ### GUCs
 
 - `splade.preload_models (string)` - A comma-separated list of models to preload. The default is empty.
+
+
+## Inference Backend
+
+Supported backends:
+- `cuda` - NVIDIA GPU with CUDA support.
+- `metal` - Apple GPU with Metal support.
+- `mkl` - Intel CPU with MKL support.
+- `cpu` - CPU with maximum simd support. (default)
+
+If you want to use other backend, you may need to add compile flags when installing the extension. For example, to use `cuda` backend, you can run:
+```sh
+cargo pgrx install --release --features cuda
+```
+
+When enabling multiple backends, it will try using the first one in [`cuda`, `metal`, `mkl`, `cpu`] order.
+
+When using CPU backend (`mkl` or `cpu`), you can change environment variable `RAYON_NUM_THREADS` to control the number of threads used for inference. The default value is the logical CPU count.
