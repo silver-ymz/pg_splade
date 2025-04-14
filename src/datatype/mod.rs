@@ -1,3 +1,4 @@
+mod function;
 mod sparsevec;
 mod sparsevec_memory;
 

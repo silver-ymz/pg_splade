@@ -2,6 +2,7 @@
 
 pub mod datatype;
 pub mod encode;
+pub mod guc;
 pub mod model;
 
 #[cfg(not(all(target_endian = "little", target_pointer_width = "64")))]
@@ -12,6 +13,11 @@ compiler_error!("PostgreSQL version must be selected.");
 
 #[pgrx::pg_guard]
 unsafe extern "C" fn _PG_init() {
+    if unsafe { pgrx::pg_sys::IsUnderPostmaster } {
+        pgrx::error!("pg_splade must be loaded in the postmaster process");
+    }
+
+    guc::init();
     encode::init();
 }
 

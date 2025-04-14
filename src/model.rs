@@ -169,7 +169,7 @@ fn get_tokenizer_idf(tokenizer: &Tokenizer, ctx: &LoadContext) -> Result<Tensor>
     let idf_content = std::fs::read(ctx.assets_path.join("idf.json"))?;
     let idf: HashMap<String, f32> = serde_json::from_slice(&idf_content)?;
 
-    let mut idf_tensor = vec![0.0; tokenizer.get_vocab_size(true) as usize];
+    let mut idf_tensor = vec![0.0; tokenizer.get_vocab_size(true)];
     for (token, weight) in idf {
         let id = tokenizer
             .token_to_id(&token)
@@ -178,7 +178,7 @@ fn get_tokenizer_idf(tokenizer: &Tokenizer, ctx: &LoadContext) -> Result<Tensor>
     }
     let res = Tensor::from_vec(
         idf_tensor,
-        tokenizer.get_vocab_size(true) as usize,
+        tokenizer.get_vocab_size(true),
         &ctx.device,
     )?;
     Ok(res)
@@ -199,7 +199,7 @@ impl MaskedLM for BertForMaskedLM {
     }
 
     fn activation(vector: &Tensor) -> Result<Tensor> {
-        let one = Tensor::ones_like(&vector)?;
+        let one = Tensor::ones_like(vector)?;
         let vector = vector.relu()?;
         let vector = Tensor::log(&one.broadcast_add(&vector)?)?;
         Ok(vector)
@@ -219,7 +219,7 @@ impl MaskedLM for DistilBertForMaskedLM {
     }
 
     fn activation(vector: &Tensor) -> Result<Tensor> {
-        let one = Tensor::ones_like(&vector)?;
+        let one = Tensor::ones_like(vector)?;
         let vector = vector.relu()?;
         let vector = Tensor::log(&one.broadcast_add(&vector)?)?;
         let vector = Tensor::log(&one.broadcast_add(&vector)?)?;

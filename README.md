@@ -22,16 +22,33 @@ select encode_query('What''s the weather in ny now?', 'distill');
 
 > You need to install [`pgvector`](https://github.com/pgvector/pgvector) first
 
+1. Build and install the extension.
 ```sh
 cargo pgrx install --release
 cp -r assets "$(pg_config --sharedir)/splade"
 ```
 
+2. Configure your PostgreSQL by modifying the `shared_preload_libraries` to include the extension.
+```sh
+psql -U postgres -c 'ALTER SYSTEM SET shared_preload_libraries = "pg_splade.so"'
+# You need restart the PostgreSQL cluster to take effects.
+sudo systemctl restart postgresql.service   # for pg_tokenizer running with systemd
+```
+
+3. Connect to the database and enable the extension.
 ```sql
+CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_splade;
 ```
 
 ## Reference
 
+### Functions
+
 - `encode_document(document text, model text) RETURNS sparsevec` - Encodes a document into a sparse vector using the specified model. The model can be either 'mini' or 'distill'.
 - `encode_query(query text, model text) RETURNS sparsevec` - Encodes a query into a sparse vector using the specified model. The model can be either 'mini' or 'distill'.
+- `truncate_sparsevec(vector sparsevec, chunk int) RETURNS sparsevec` - Truncates a sparse vector to the specified chunk size. It will only keep the top-k elements in the vector. It helps to work with hnsw indexes.
+
+### GUCs
+
+- `splade.preload_models (string)` - A comma-separated list of models to preload. The default is empty.

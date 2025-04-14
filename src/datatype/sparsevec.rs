@@ -62,13 +62,16 @@ impl SparsevecOwned {
         let mut indexes = Vec::new();
         let mut values = Vec::new();
         for (i, &v) in dense.iter().enumerate() {
+            if v.is_nan() || v.is_infinite() {
+                anyhow::bail!("dense vector contains invalid value: {}", v);
+            }
             if v != 0.0 {
                 indexes.push(i as u32);
                 values.push(v);
             }
         }
         if indexes.len() > MAX_NNZ {
-            anyhow::bail!("sparsevec is too large");
+            truncate_sparsevec(&mut indexes, &mut values, MAX_NNZ)?;
         }
 
         Ok(unsafe { Self::new_unchecked(dense.len() as u32, indexes, values) })
@@ -102,6 +105,10 @@ impl<'a> SparsevecBorrowed<'a> {
 
     pub fn dims(&self) -> u32 {
         self.dims
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.indexes.is_empty()
     }
 
     pub fn len(&self) -> usize {
@@ -149,10 +156,45 @@ fn check_sparsevec(dims: u32, indexes: &[u32], values: &[f32]) -> Result<()> {
         );
     }
     for val in values {
+        if val.is_nan() || val.is_infinite() {
+            anyhow::bail!("value must not be NaN or infinite, but got {:?}", values);
+        }
         if *val == 0.0 {
             anyhow::bail!("value must not be zero, but got {:?}", values);
         }
     }
 
+    Ok(())
+}
+
+pub fn truncate_sparsevec(
+    indexes: &mut Vec<u32>,
+    values: &mut Vec<f32>,
+    chunk: usize,
+) -> Result<()> {
+    if chunk >= MAX_NNZ {
+        anyhow::bail!("chunk must be less than {}", MAX_NNZ);
+    }
+    if indexes.len() != values.len() {
+        anyhow::bail!(
+            "index and value must have the same length, but got {} and {}",
+            indexes.len(),
+            values.len()
+        );
+    }
+    if chunk >= indexes.len() {
+        return Ok(());
+    }
+
+    let mut sort_vec = (0..indexes.len()).collect::<Vec<_>>();
+    sort_vec.sort_by(|&a, &b| values[a].total_cmp(&values[b]));
+    let mut indexes_sorted = Vec::with_capacity(MAX_NNZ);
+    let mut values_sorted = Vec::with_capacity(MAX_NNZ);
+    for &i in sort_vec.iter().take(MAX_NNZ) {
+        indexes_sorted.push(indexes[i]);
+        values_sorted.push(values[i]);
+    }
+    *indexes = indexes_sorted;
+    *values = values_sorted;
     Ok(())
 }

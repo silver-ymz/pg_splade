@@ -65,7 +65,21 @@ fn get_model(model: &str) -> &'static dyn Encode {
 }
 
 pub fn init() {
-    // TODO: preload model
+    // Preload models
+    let models = crate::guc::preload_models();
+    for model in models {
+        match model.as_str() {
+            "mini" => {
+                LazyLock::force(&MINI);
+                pgrx::info!("Preloaded model: mini");
+            }
+            "distill" => {
+                LazyLock::force(&DISTILL);
+                pgrx::info!("Preloaded model: distill");
+            }
+            _ => pgrx::warning!("Unknown model {} in preload_models, skipping", model),
+        }
+    }
 }
 
 #[pgrx::pg_extern(immutable, strict, parallel_safe)]
