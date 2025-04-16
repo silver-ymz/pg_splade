@@ -25,14 +25,14 @@ select encode_query('What''s the weather in ny now?', 'distill');
 1. Build and install the extension.
 ```sh
 cargo pgrx install --release
-cp -r assets "$(pg_config --sharedir)/splade"
+cp -r assets "$(pg_config --sharedir)/splade"  # copy built-in model, you can ignore this step if you want to download your own model
 ```
 
 2. Configure your PostgreSQL by modifying the `shared_preload_libraries` to include the extension.
 ```sh
 psql -U postgres -c 'ALTER SYSTEM SET shared_preload_libraries = "pg_splade.so"'
 # You need restart the PostgreSQL cluster to take effects.
-sudo systemctl restart postgresql.service   # for pg_tokenizer running with systemd
+sudo systemctl restart postgresql.service   # for users running with systemd
 ```
 
 3. Connect to the database and enable the extension.
@@ -50,7 +50,7 @@ We have a built-in model `distill` which is from `opensearch-project/opensearch-
 For each connection, postgres will load the model from the disk. If you want to preload the model at the startup, you can set the `splade.preload_models` GUC to a comma-separated list of model names. For example:
 ```sh
 psql -c "ALTER SYSTEM SET splade.preload_models = 'distill'"
-systemctl restart postgresql.service   # for users running with systemd
+sudo systemctl restart postgresql.service   # for users running with systemd
 ```
 
 ## Reference
@@ -67,7 +67,6 @@ systemctl restart postgresql.service   # for users running with systemd
 ### GUCs
 
 - `splade.preload_models (string)` - A comma-separated list of models to preload. The default is empty.
-
 
 ## Inference Backend
 
