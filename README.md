@@ -41,13 +41,28 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_splade;
 ```
 
+## Model
+
+We have a built-in model `distill` which is from `opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill` on Hugging Face Hub. You can also use other models from Hugging Face Hub by calling `download_model` function. The model will be downloaded and saved in the `splade` directory under the PostgreSQL shared directory. The name of the model is used as the key to access the model in the database.
+
+### Preload
+
+For each connection, postgres will load the model from the disk. If you want to preload the model at the startup, you can set the `splade.preload_models` GUC to a comma-separated list of model names. For example:
+```sh
+psql -c "ALTER SYSTEM SET splade.preload_models = 'distill'"
+systemctl restart postgresql.service   # for users running with systemd
+```
+
 ## Reference
 
 ### Functions
 
-- `encode_document(document text, model text) RETURNS sparsevec` - Encodes a document into a sparse vector using the specified model. The model can be either 'mini' or 'distill'.
-- `encode_query(query text, model text) RETURNS sparsevec` - Encodes a query into a sparse vector using the specified model. The model can be either 'mini' or 'distill'.
+- `encode_document(document text, model text) RETURNS sparsevec` - Encodes a document into a sparse vector using the specified model.
+- `encode_query(query text, model text) RETURNS sparsevec` - Encodes a query into a sparse vector using the specified model.
 - `truncate_sparsevec(vector sparsevec, chunk int) RETURNS sparsevec` - Truncates a sparse vector to the specified chunk size. It will only keep the top-k elements in the vector. It helps to work with hnsw indexes.
+- `download_model(name text, repo_id text)` - Downloads a model from Hugging Face Hub. The model will be saved in the `splade` directory under the PostgreSQL shared directory. The name of the model is used as the key to access the model in the database. The repo_id is the Hugging Face Hub repo ID of the model. For example, `opensearch-project/opensearch-neural-sparse-encoding-doc-v2-mini`.
+- `remove_model(name text)` - Removes a model from the `splade` directory.
+- `list_model() RETURNS text[]` - Lists all the models in the `splade` directory.
 
 ### GUCs
 

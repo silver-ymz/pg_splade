@@ -1,2 +1,1 @@
 assets/distill/model.safetensors filter=lfs diff=lfs merge=lfs -text
-assets/mini/model.safetensors filter=lfs diff=lfs merge=lfs -text

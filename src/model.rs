@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use anyhow::{anyhow, Error, Result};
@@ -11,6 +12,47 @@ use candle_core::{
 use candle_nn::VarBuilder;
 use candle_transformers::models::{bert::BertForMaskedLM, distilbert::DistilBertForMaskedLM};
 use tokenizers::{PaddingParams, Tokenizer};
+
+pub trait Encode {
+    fn encode_document(&self, document: &str) -> Result<Tensor>;
+    fn encode_query(&self, query: &str) -> Result<Tensor>;
+}
+
+impl<T: MaskedLM> Encode for SpladeModel<T> {
+    fn encode_document(&self, document: &str) -> Result<Tensor> {
+        self.encode_document(document)
+    }
+
+    fn encode_query(&self, query: &str) -> Result<Tensor> {
+        self.encode_query(query)
+    }
+}
+
+pub type ModelPtr = Arc<dyn Encode + Send + Sync>;
+
+pub fn load_dynamic_model(path: &Path) -> Result<ModelPtr> {
+    let config = std::fs::read_to_string(path.join("config.json"))?;
+    let config: serde_json::Value = serde_json::from_str(&config)?;
+    // get config['architectures'][0]
+    let architecture = config
+        .get("architectures")
+        .and_then(|v| v.as_array())
+        .and_then(|v| v.first())
+        .and_then(|v| v.as_str())
+        .ok_or(anyhow!("Failed to get architecture"))?;
+    let model = match architecture {
+        "BertForMaskedLM" => {
+            let model = SpladeModel::<BertForMaskedLM>::load(path)?;
+            Arc::new(model) as ModelPtr
+        }
+        "DistilBertForMaskedLM" => {
+            let model = SpladeModel::<DistilBertForMaskedLM>::load(path)?;
+            Arc::new(model) as ModelPtr
+        }
+        _ => return Err(anyhow!("Unknown architecture: {}", architecture)),
+    };
+    Ok(model)
+}
 
 pub trait MaskedLM {
     type Config: for<'de> serde::Deserialize<'de>;
@@ -176,11 +218,7 @@ fn get_tokenizer_idf(tokenizer: &Tokenizer, ctx: &LoadContext) -> Result<Tensor>
             .ok_or(anyhow!("Token not found"))?;
         idf_tensor[id as usize] = weight;
     }
-    let res = Tensor::from_vec(
-        idf_tensor,
-        tokenizer.get_vocab_size(true),
-        &ctx.device,
-    )?;
+    let res = Tensor::from_vec(idf_tensor, tokenizer.get_vocab_size(true), &ctx.device)?;
     Ok(res)
 }
 
